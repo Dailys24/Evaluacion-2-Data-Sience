@@ -33,3 +33,46 @@ try:
             
     df = pd.DataFrame({'Fecha': fechas, 'Cantidad_Turistas': turistas})
     #Fin Datos Dummy
+
+except FileNotFoundError:
+    print("Error: No se encontró el archivo 'tu_dataset_turismo.csv'.")
+    exit()
+
+#Convertir la columna 'Fecha' a formato datetime
+df['Fecha'] = pd.to_datetime(df['Fecha'])
+df = df.sort_values(by='Fecha') #Asegurarse de que esté ordenado
+df = df.set_index('Fecha') #Poner la fecha como índice
+
+#Crear variables de estacionalidad
+df['Mes'] = df.index.month
+df['Anio'] = df.index.year
+
+#Crear variables desfasadas (Lags)
+#Lag_1: Turistas del mes anterior
+df['Lag_1'] = df['Cantidad_Turistas'].shift(1)
+
+#Limpieza
+print(f"Filas ANTES de limpiar NaNs (Ene 2022 - Mar 2025): {len(df)} (39 filas)")
+df = df.dropna()
+print(f"Filas DESPUÉS de limpiar NaNs (Feb 2022 - Mar 2025): {len(df)} (38 filas)")
+
+#Crear variable objetivo de clasificación
+media_turistas = df['Cantidad_Turistas'].mean()
+df['Temporada_Alta'] = (df['Cantidad_Turistas'] > media_turistas).astype(int)
+
+print("\nVista previa de los datos procesados:")
+print(df.head())
+
+#Division de Datos (X e y)
+
+#Nuestras variables predictoras.
+features = ['Mes', 'Anio', 'Lag_1']
+X = df[features]
+
+#Prolema 1: Regresión
+#Predecir la cantidad numérica de turistas
+y_regresion = df['Cantidad_Turistas']
+
+#Problema 2: Clasificación
+#Predecir la categoría 'Temporada_Alta' (1 o 0)
+y_clasificacion = df['Temporada_Alta']
