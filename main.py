@@ -76,3 +76,21 @@ y_regresion = df['Cantidad_Turistas']
 #Problema 2: Clasificación
 #Predecir la categoría 'Temporada_Alta' (1 o 0)
 y_clasificacion = df['Temporada_Alta']
+
+
+#Dividimos los datos: 70% para entrenar, 30% para probar (sin mezclar)
+test_size = 0.3
+split_index = int(len(df) * (1 - test_size))
+
+X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
+y_train_reg, y_test_reg = y_regresion.iloc[:split_index], y_regresion.iloc[split_index:]
+y_train_clas, y_test_clas = y_clasificacion.iloc[:split_index], y_clasificacion.iloc[split_index:]
+
+#Escalado de Datos región logística y red neuronal
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+print(f"\nDatos de entrenamiento: {len(X_train)} filas")
+print(f"Datos de prueba: {len(X_test)} filas")
