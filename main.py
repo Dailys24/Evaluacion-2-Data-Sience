@@ -77,7 +77,6 @@ y_regresion = df['Cantidad_Turistas']
 #Predecir la categoría 'Temporada_Alta' (1 o 0)
 y_clasificacion = df['Temporada_Alta']
 
-
 #Dividimos los datos: 70% para entrenar, 30% para probar (sin mezclar)
 test_size = 0.3
 split_index = int(len(df) * (1 - test_size))
