@@ -93,3 +93,85 @@ X_test_scaled = scaler.transform(X_test)
 
 print(f"\nDatos de entrenamiento: {len(X_train)} filas")
 print(f"Datos de prueba: {len(X_test)} filas")
+
+#Implementación de Modelos
+print("\n--- INICIANDO ENTRENAMIENTO DE MODELOS ---")
+
+#Modelo 1: regresión lineal (Regresión)
+print("\n[Modelo 1: Regresión Lineal]")
+modelo_reg_lineal = LinearRegression()
+modelo_reg_lineal.fit(X_train, y_train_reg)
+pred_reg_lineal = modelo_reg_lineal.predict(X_test)
+r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
+print(f"R^2 (Regresión Lineal): {r2_lineal:.4f}")
+
+#Gráfico (Real vs Predicción)
+plt.figure(figsize=(10, 5))
+plt.plot(y_test_reg.index, y_test_reg, label='Real')
+plt.plot(y_test_reg.index, pred_reg_lineal, label='Predicción (Lineal)', linestyle='--')
+plt.title('Regresión Lineal: Real vs. Predicción')
+plt.legend()
+plt.show()
+
+#Modelo 2: Regresion logistica (Problema de Clasificación)
+print("\n[Modelo 2: Regresión Logística]")
+modelo_reg_log = LogisticRegression(random_state=42)
+modelo_reg_log.fit(X_train_scaled, y_train_clas)
+pred_reg_log = modelo_reg_log.predict(X_test_scaled)
+acc_log = accuracy_score(y_test_clas, pred_reg_log)
+print(f"Accuracy (Reg. Logística): {acc_log:.4f}")
+
+#Matriz de Confusión
+print("Matriz de Confusión (Reg. Logística):")
+cm_log = confusion_matrix(y_test_clas, pred_reg_log)
+sns.heatmap(cm_log, annot=True, fmt='d', cmap='Blues')
+plt.title('Matriz de Confusión - Reg. Logística')
+plt.xlabel('Predicho')
+plt.ylabel('Real')
+plt.show()
+
+#Modelo 3: Random forest (Problema de Clasificación)
+print("\n[Modelo 3: Random Forest Classifier]")
+modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
+modelo_rf.fit(X_train, y_train_clas)
+pred_rf = modelo_rf.predict(X_test)
+acc_rf = accuracy_score(y_test_clas, pred_rf)
+print(f"Accuracy (Random Forest): {acc_rf:.4f}")
+
+#Importancia de Variables
+importancias = modelo_rf.feature_importances_
+df_importancias = pd.DataFrame({'Variable': features, 'Importancia': importancias})
+df_importancias = df_importancias.sort_values(by='Importancia', ascending=False)
+print("\nImportancia de Variables (RF):")
+print(df_importancias)
+sns.barplot(x='Importancia', y='Variable', data=df_importancias)
+plt.title('Importancia de Variables - Random Forest')
+plt.show()
+
+#Modelo 4: Red neuronal - MLP (Problema de Regresión)
+print("\n[Modelo 4: Red Neuronal (MLP Regressor)]")
+modelo_nn = MLPRegressor(hidden_layer_sizes=(50, 25), max_iter=1000, random_state=42, solver='lbfgs')
+modelo_nn.fit(X_train_scaled, y_train_reg)
+pred_nn = modelo_nn.predict(X_test_scaled)
+r2_nn = r2_score(y_test_reg, pred_nn)
+print(f"R^2 (Red Neuronal): {r2_nn:.4f}")
+
+#Gráfico (Comparando todos los modelos de regresión)
+plt.figure(figsize=(10, 5))
+plt.plot(y_test_reg.index, y_test_reg, label='Real', color='black', lw=2)
+plt.plot(y_test_reg.index, pred_reg_lineal, label=f'Predicción (Lineal) R2={r2_lineal:.2f}', linestyle='--')
+plt.plot(y_test_reg.index, pred_nn, label=f'Predicción (Red Neuronal) R2={r2_nn:.2f}', linestyle=':')
+plt.title('Comparación Modelos de Regresión')
+plt.legend()
+plt.show()
+
+#Comparacion y resultados
+print("\n--- RESUMEN DE EVALUACIÓN ---")
+print("\nProblema de Regresión (Predecir Cantidad):")
+print(f"  R^2 Regresión Lineal: {r2_lineal:.4f}")
+print(f"  R^2 Red Neuronal    : {r2_nn:.4f}")
+
+print("\nProblema de Clasificación (Predecir Temporada Alta):")
+print(f"  Accuracy Reg. Logística: {acc_log:.4f}")
+print(f"  Accuracy Random Forest : {acc_rf:.4f}")
+print("\n--- FIN DEL SCRIPT ---")
