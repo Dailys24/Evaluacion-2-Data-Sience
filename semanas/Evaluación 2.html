@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trabajo Práctico 2: Modelos Predictivos en Acción</title>
+<style>
+:root {
+--utem-blue: #002b5c; --utem-blue-light: #0077cc; --text-dark: #2d3748; --text-light: #ffffff;
+--bg-light: #f7fafc; --bg-dark: #1a202c; --surface-light: #ffffff; --surface-dark: #2d3748;
+--highlight-bg: #ebf8ff; --highlight-border: #90cdf4; --highlight-text: #3182ce;
+--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05); --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+--border-radius-md: 10px; --border-radius-lg: 16px;
+--font-family-main: "Century Gothic", "Apple Gothic", "URW Gothic L", sans-serif;
+--transition-fast: all 0.3s ease-in-out; --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-color-scheme: dark) {
+:root {
+--text-dark: #e2e8f0; --bg-light: var(--bg-dark); --surface-light: var(--surface-dark);
+--border-color-light: var(--border-color-dark); --highlight-bg: #1e3a8a; --highlight-border: #60a5fa;
+--highlight-text: #bfdbfe;
+}
+}
+body { font-family: var(--font-family-main); background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding-top: 80px; padding-bottom: 60px; line-height: 1.6; overflow: hidden; }
+header { background-color: rgba(0, 43, 92, 0.95); backdrop-filter: blur(8px); color: var(--text-light); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); position: fixed; top: 0; width: 100%; z-index: 1001; box-sizing: border-box; height: 80px; }
+.logo { height: 50px; width: auto; }
+.header-text-container { text-align: right; }
+.header-title-main { font-size: 1.3em; font-weight: 600; margin: 0; }
+.header-subtitle-main { font-size: 0.8em; margin: 2px 0; color: #e0e0e0; font-weight: 300; }
+.contact-info-header { margin-top: 4px; font-size: 0.8em; color: #ced4da; }
+.contact-info-header a { color: #e9ecef; text-decoration: none; }
+footer { background-color: rgba(0, 43, 92, 0.95); color: var(--text-light); text-align: center; padding: 12px; position: fixed; width: 100%; bottom: 0; z-index: 1001; font-size: 0.85em; height: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; backdrop-filter: blur(8px); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+footer p { margin: 2px 0; }
+main#slider { width: 100%; height: calc(100vh - 140px); position: relative; overflow: hidden; }
+.slides-container { display: flex; height: 100%; width: 100%; transition: var(--transition-slow); }
+
+    .slide {
+        width: 100%; height: 100%; flex-shrink: 0; box-sizing: border-box; padding: 2rem;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .slide-content {
+        background-color: var(--surface-light); border: 1px solid var(--border-color-light);
+        border-radius: var(--border-radius-lg); box-shadow: var(--shadow-md);
+        padding: 2rem 2.5rem; max-width: 950px; width: 90%; max-height: 95%; overflow-y: auto;
+        opacity: 0; transform: scale(0.98); transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+    }
+    .slide.active .slide-content {
+        opacity: 1; transform: scale(1);
+    }
+    .slide-content h2 { font-size: 2em; font-weight: 600; color: var(--utem-blue); margin-top: 0; border-bottom: 2px solid var(--utem-blue); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    .slide-content h3 { font-size: 1.3em; font-weight: 600; color: var(--utem-blue-light); margin-top: 2rem; margin-bottom: 1rem; }
+    .slide-content p { margin-bottom: 1.2rem; line-height: 1.7; text-align: justify; }
+    .slide-content strong { color: var(--utem-blue); font-weight: 600; }
+    .slide-content ul, .slide-content ol { list-style-type: disc; padding-left: 25px; }
+    .slide-content li { margin-bottom: 0.8rem; }
+    .slide-content ol { list-style-type: decimal; }
+    .example-box { background-color: var(--highlight-bg); border: 1px solid var(--highlight-border); border-left: 5px solid var(--highlight-border); padding: 1.5rem; border-radius: var(--border-radius-md); margin-top: 1rem; }
+    .example-box-title { font-weight: bold; color: var(--highlight-text); margin-bottom: 0.5rem; display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: var(--utem-blue); color: white; }
+    tr:nth-child(even) { background-color: var(--bg-light); }
+
+
+    @media (prefers-color-scheme: dark) {
+        .slide-content h2 { color: var(--utem-blue-light); border-bottom-color: var(--utem-blue-light); }
+        .slide-content strong { color: var(--utem-blue-light); }
+        th { background-color: var(--utem-blue-light); color: var(--text-light); }
+        td { border-color: #4a5568; }
+        tr:nth-child(even) { background-color: #2d3748; }
+    }
+
+    .nav-button { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 43, 92, 0.6); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; z-index: 100; display: flex; align-items: center; justify-content: center; transition: var(--transition-fast); }
+    .nav-button:hover { background-color: var(--utem-blue); transform: translateY(-50%) scale(1.1); }
+    .nav-button:disabled { background-color: #9ca3af; cursor: not-allowed; opacity: 0.5; }
+    #prevBtn { left: 1rem; }
+    #nextBtn { right: 1rem; }
+
+    .slide-counter { position: absolute; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); color: white; padding: 8px 15px; border-radius: 20px; font-size: 0.9em; font-weight: 500; z-index: 100; }
+
+    @media (max-width: 900px) {
+        body { padding-top: 70px; }
+        header { height: 70px; padding: 5px 15px; flex-direction: row-reverse; }
+        .logo { height: 40px; }
+        main#slider { height: calc(100vh - 130px); }
+        .slide { padding: 1rem; }
+        .slide-content { padding: 1.5rem; max-width: 100%; width: 100%; }
+        .slide-content h2 { font-size: 1.5em; }
+    }
+</style>
+</head>
+<body>
+<header>
+<div class="header-text-container"> <h1 class="header-title-main">Fundamentos de Data Science</h1> <p class="header-subtitle-main">Planificación Semestral 2025</p> <div class="contact-info-header"> <span>Carlos Muñoz S. - </span><a href="mailto:c.munozs@utem.cl">c.munozs@utem.cl</a> </div> </div> <img src="https://cdn.remotexs.co/institute-logos/sibutemnewlogo1.png" alt="Logo UTEM" class="logo" onerror="this.style.display='none'">
+</header>
+<main id="slider">
+<div class="slides-container"></div>
+<button id="prevBtn" class="nav-button" title="Anterior"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg> </button>
+<button id="nextBtn" class="nav-button" title="Siguiente"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg> </button>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">7</span>
+    </div>
+</main>
+<footer>
+    <p>&copy; 2025 Universidad Tecnológica Metropolitana</p> <p>Departamento de Informática y Computación</p>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const assignment_slides_data = [
+        {
+            title: "Trabajo Práctico 2: Modelos Predictivos 🚀",
+            content: `
+                <h3>Evaluación Sumativa Semanas 4-7</h3>
+                <p>El objetivo de este trabajo es aplicar el ciclo de vida de un proyecto de Data Science, implementando los modelos vistos en clases (Semanas 4, 5, 6 y 7) para analizar un <strong>tema contingente con datos reales</strong>.</p>
+                <p>El trabajo será desarrollado en grupos de <strong>3 integrantes</strong> y culminará en una presentación y defensa en vivo.</p>
+                <div class="example-box">
+                    <span class="example-box-title">Ponderación Final</span>
+                    <p style="margin:0;">Este trabajo práctico corresponde al <strong>35% de la calificación final</strong> del curso.</p>
+                </div>
+            `
+        },
+        {
+            title: "¡Advertencia! Evaluación de Dominio ⚠️",
+            content: `
+                <h3>Modalidad de Defensa (Grupos de 3)</h3>
+                <p>El día de la presentación, el profesor seleccionará aleatoriamente a <strong>1 integrante</strong> para realizar la presentación de 10 minutos.</p>
+                <p>Luego, el profesor seleccionará a <strong>OTRO integrante</strong> del grupo para responder la ronda de preguntas técnicas sobre el código, la metodología y los resultados.</p>
+                <div class="example-box" style="border-left-color: #f56565; background-color: #fff5f5;">
+                    <span class="example-box-title" style="color: #c53030;">¡Importante!</span>
+                    <p style="margin:0;">Si el expositor o el encargado de las preguntas no demuestra un dominio completo del proyecto, la calificación del <strong>grupo completo</strong> se verá afectada negativamente. Esto exige que los 3 integrantes dominen el 100% del trabajo.</p>
+                </div>
+            `
+        },
+        {
+            title: "Requisitos del Proyecto",
+            content: `
+                <h3>1. Fuente de Datos Reales</h3>
+                <p>Deben seleccionar un tema contingente y obtener un dataset real. Deben <strong>citar la fuente</strong> de sus datos (ej. Gobierno de Chile, Kaggle, INE, Banco Central, etc.).</p>
+                
+                <h3>2. Aplicación de Algoritmos (Obligatorio)</h3>
+                <p>Deben aplicar <strong>TODOS</strong> los siguientes modelos a su dataset y explicar qué buscaban con cada uno:</p>
+                <ul>
+                    <li><strong>Regresión Lineal</strong> (Simple o Múltiple) (Semana 4).</li>
+                    <li><strong>Clasificación</strong> (Regresión Logística o K-NN) (Semana 5).</li>
+                    <li><strong>Árbol de Decisión / Random Forest</strong> (Semana 6).</li>
+                    <li><strong>Red Neuronal Simple</strong> (Perceptrón Multicapa) (Semana 7).</li>
+                </ul>
+                <p>Deberán justificar por qué y para qué usaron cada algoritmo (ej. "Usamos Regresión para predecir el precio, y Clasificación para predecir si la calidad era 'Buena' o 'Mala'").</p>
+            `
+        },
+        {
+            title: "Ideas de Temas Contingentes (Datos Reales)",
+            content: `
+                <p>Se espera que investiguen un problema de interés. Aquí hay algunas sugerencias (pueden proponer otras):</p>
+                <ul>
+                    <li><strong>Elecciones Presidenciales 2025:</strong> Análisis de sentimiento en redes sociales, predicción de resultados por comuna.</li>
+                    <li><strong>Costos de Servicios Básicos:</strong> Análisis y predicción de cuentas de la luz o agua según comuna y consumo.</li>
+                    <li><strong>Gasto Público y Transparencia:</strong> Análisis de licitaciones en Mercado Público (ej. predecir sobrecostos).</li>
+                    <li><strong>Salud Pública:</strong> Predicción de días en listas de espera (Regresión) o riesgo de enfermedad (Clasificación).</li>
+                    <li><strong>Medio Ambiente:</strong> Predicción de niveles de calidad del aire (PM2.5) en Santiago.</li>
+                    <li><strong>Economía:</strong> Predicción de precios de viviendas (UF) o valor de arriendos.</li>
+                    <li><strong>Transporte:</strong> Predicción de congestión vehicular o flujo de pasajeros en el Metro de Santiago.</li>
+                    <li><strong>Ciberseguridad:</strong> Detección de anomalías en tráfico de red o transacciones fraudulentas.</li>
+                    <li><strong>Acuicultura:</strong> Predicción de mortalidad en salmones (Clasificación) o Kilos cosechados (Regresión).</li>
+                    <li><strong>Educación:</strong> Análisis de factores de deserción estudiantil o predicción de resultados PAES/SIMCE.</li>
+                    <li><strong>Retail (Fuga de Clientes):</strong> Predecir qué clientes abandonarán un servicio o tienda.</li>
+                </ul>
+            `
+        },
+        {
+            title: "Entregables y Defensa del Proyecto 👨‍🏫",
+            content: `
+                <p><strong>NO se requiere un informe escrito.</strong> La evaluación se basa 100% en la defensa en vivo.</p>
+                
+                <h3>1. Presentación Oral (10 minutos MÁXIMO)</h3>
+                <p>Usando un PPTX, el expositor seleccionado debe cubrir:</p>
+                <ul>
+                    <li>El problema: ¿Cuál es el tema contingente y por qué es relevante?</li>
+                    <li>La fuente de datos: ¿De dónde salieron y cómo se procesaron?</li>
+                    <li>Análisis por modelo: Explicar qué se hizo con cada uno de los 4 algoritmos.</li>
+                </ul>
+
+                <h3>2. Demostración de Código y Gráficos</h3>
+                <p>El expositor deberá mostrar en pantalla el <strong>código fuente en Python</strong> y explicar las partes clave del script. Se debe incluir:</p>
+                <ul>
+                    <li>La carga y limpieza de datos.</li>
+                    <li>La implementación de los modelos (ej. <code>.fit()</code>, <code>.predict()</code>).</li>
+                    <li><strong>Gráficos explicativos</strong> que muestren los resultados (ej. Matriz de confusión, línea de regresión, importancia de variables, etc.).</li>
+                </ul>
+                
+                <h3>3. Conclusión y Lecciones Aprendidas</h3>
+                <p>¿A qué conclusión llegaron? ¿Qué fue lo más difícil? ¿Qué aprendió el grupo?</p>
+            `
+        },
+        {
+            title: "Rúbrica de Evaluación (10 Puntos)",
+            content: `
+                <p>La nota final se basará en 5 criterios (2 puntos cada uno). La calificación del grupo será la misma para todos los integrantes.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Criterio de Evaluación</th>
+                            <th>Descripción para Logrado (2 pts)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1. Aplicación de Algoritmos</strong></td>
+                            <td>Implementan los 4 modelos (Regresión, Clasificación, Árbol/RF, Red Neuronal) de forma funcional y correcta.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>2. Calidad de Datos y Análisis</strong></td>
+                            <td>Utilizan un dataset real y contingente. El análisis es coherente y responde a una pregunta de negocio/investigación clara.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>3. Dominio de Código y Gráficos</strong></td>
+                            <td>Demuestran autoría y dominio del script de Python. Los gráficos generados son claros y apoyan las conclusiones.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>4. Calidad Expositiva (Expositor)</strong></td>
+                            <td>El expositor seleccionado presenta con claridad, seguridad y se ajusta a los 10 minutos. El PPTX es profesional.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>5. Dominio Técnico (Q&A)</strong></td>
+                            <td>El integrante seleccionado para las preguntas responde con precisión técnica, demostrando dominio total del proyecto.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `
+        },
+        {
+            title: "Cálculo y Fechas Clave 🗓️",
+            content: `
+                <h3>Cálculo de Calificación</h3>
+                <ol>
+                    <li><strong>Puntaje Total:</strong> Se suman los puntos de la rúbrica (Máximo 10 puntos).</li>
+                    <li><strong>Nota Final (Escala 1.0 - 7.0):</strong> (Puntaje Obtenido / 10) * 6 + 1</li>
+                    <li><strong>Ponderación:</strong> Esta nota se pondera al 35% de la nota final del curso.</li>
+                </ol>
+                
+                <h3>Fechas Importantes</h3>
+                <ul>
+                    <li><strong>Fecha de Asignación:</strong> Lunes, 20 de Octubre de 2025.</li>
+                    <li><strong>Fecha de Presentaciones:</strong> Lunes, 3 de Noviembre de 2025 (Durante el horario de clases).</li>
+                </ul>
+                 <div class="example-box">
+                    <span class="example-box-title">¡Éxito en su proyecto!</span>
+                    <p style="margin:0;">El objetivo es que demuestren su capacidad de aplicar los modelos en un escenario real y caótico. ¡Enfóquense en las "lecciones aprendidas"!</p>
+                </div>
+            `
+        }
+    ];
+
+    // LÓGICA DEL SLIDER (Copiada de Forma A.html)
+    function createContentSlide(slideData) {
+        const slide = document.createElement('div');
+        slide.className = 'slide';
+        slide.innerHTML = `
+            <div class="slide-content">
+                <h2>${slideData.title}</h2>
+                ${slideData.content}
+            </div>
+        `;
+        return slide;
+    }
+
+    function initializeSlider() {
+        const slidesContainer = document.querySelector('.slides-container');
+        const prevBtn = document.getElementById('prevBtn'), nextBtn = document.getElementById('nextBtn');
+        const currentSlideElement = document.getElementById('current-slide');
+        const totalSlidesElement = document.getElementById('total-slides');
+        let currentSlide = 0;
+
+        slidesContainer.innerHTML = '';
+
+        assignment_slides_data.forEach(data => {
+            slidesContainer.appendChild(createContentSlide(data));
+        });
+        
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        if (totalSlidesElement) {
+            totalSlidesElement.textContent = totalSlides;
+        }
+        
+        const goToSlide = (index) => {
+            slidesContainer.style.transform = `translateX(-${index * 100}%)`;
+            slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === slides.length - 1;
+            if (currentSlideElement) {
+                currentSlideElement.textContent = currentSlide + 1;
+            }
+        }
+        
+        const changeSlide = (direction) => {
+            const newSlide = currentSlide + direction;
+            if (newSlide >= 0 && newSlide < totalSlides) {
+                goToSlide(newSlide);
+            }
+        }
+        
+        prevBtn.addEventListener('click', () => changeSlide(-1));
+        nextBtn.addEventListener('click', () => changeSlide(1));
+        
+        document.addEventListener('keydown', function(event) {
+            switch (event.key) {
+                case 'ArrowRight': case 'PageDown': case 'ArrowDown':
+                    changeSlide(1);
+                    break;
+                case 'ArrowLeft': case 'PageUp': case 'ArrowUp':
+                    changeSlide(-1);
+                    break;
+            }
+        });
+
+        let startX = 0, endX = 0;
+        slidesContainer.addEventListener('touchstart', (event) => startX = event.touches[0].clientX);
+        slidesContainer.addEventListener('touchend', (event) => {
+            endX = event.changedTouches[0].clientX;
+            const difference = startX - endX;
+            if (Math.abs(difference) > 50) {
+                changeSlide(difference > 0 ? 1 : -1);
+            }
+        });
+        
+        if (slides.length > 0) goToSlide(0);
+    }
+
+    initializeSlider();
+});
+</script>
+</body>
+</html>
