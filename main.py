@@ -9,95 +9,110 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 #Modelos
-from sklearn.linear_model import LinearRegression      # Modelo 1 (Regresión)
-from sklearn.linear_model import LogisticRegression    # Modelo 2 (Clasificación)
-from sklearn.ensemble import RandomForestClassifier  # Modelo 3 (Árbol/RF)
-from sklearn.neural_network import MLPRegressor        # Modelo 4 (Red Neuronal)
+from sklearn.linear_model import LinearRegression    #Modelo 1 (Regresión)
+from sklearn.linear_model import LogisticRegression  #Modelo 2 (Clasificación)
+from sklearn.ensemble import RandomForestClassifier  #Modelo 3 (Árbol/RF)
+from sklearn.neural_network import MLPRegressor      #Modelo 4 (Red Neuronal)
 
 #Métricas de Evaluación
 from sklearn.metrics import r2_score, mean_squared_error   # Para Regresión
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report # Para Clasificación
 
 #Carga y preprocesamiento de datos
-try:
-    #Período: Enero 2022 a Marzo 2025 = 39 meses.
-    fechas = pd.date_range(start='2022-01-01', periods=39, freq='MS')
-    turistas = []
-    base_turistas = 150000
-    for m in fechas:
-        #Estacionalidad
-        estacionalidad = (np.sin((m.month - 1) * (np.pi / 6) - (np.pi / 2)) * -1) * 30000 + 50000
-        ruido = np.random.randint(-10000, 10000)
-        #Simulación de recuperación post-pandemia
-        turistas.append(int(estacionalidad + ruido + base_turistas * (m.year - 2021) * 0.5))
-            
-    df = pd.DataFrame({'Fecha': fechas, 'Cantidad_Turistas': turistas})
-    #Fin Datos Dummy
+file_name = 'Cantidad de turistas.csv' 
 
+try:
+    df = pd.read_csv(file_name)
+    print(f"Archivo '{file_name}' cargado exitosamente.")
 except FileNotFoundError:
-    print("Error: No se encontró el archivo 'tu_dataset_turismo.csv'.")
+    print(f"Error: No se encontró el archivo '{file_name}'.")
+    exit()
+except Exception as e:
+    print(f"Error al leer el archivo. Revisa el formato. Error: {e}")
     exit()
 
-#Convertir la columna 'Fecha' a formato datetime
-df['Fecha'] = pd.to_datetime(df['Fecha'])
-df = df.sort_values(by='Fecha') #Asegurarse de que esté ordenado
-df = df.set_index('Fecha') #Poner la fecha como índice
+#Ingeniería de Características y Limpieza
 
-#Crear variables de estacionalidad
-df['Mes'] = df.index.month
-df['Anio'] = df.index.year
+#Limpiar nuevas columnas (Dólar y PIB)
+if df['Tipo_Cambio_Promedio'].dtype == 'object':
+    df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].str.replace(',', '.').astype(float)
+if df['PIB'].dtype == 'object':
+    df['PIB'] = df['PIB'].str.replace(',', '').astype(float)
+print("Columnas 'Tipo_Cambio_Promedio' y 'PIB' limpiadas y convertidas a número.")
+
+#Convertir 'Mes' (texto) a número
+mapa_meses = {
+    'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+    'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+}
+if df['Mes'].dtype == 'object':
+    df['Mes_Num'] = df['Mes'].map(mapa_meses)
+else:
+    df['Mes_Num'] = df['Mes']
+
+#Crear una 'Fecha' real para usarla como índice
+df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Num'].astype(str))
+df = df.sort_values(by='Fecha')
+df = df.set_index('Fecha')
+
+#Este gráfico muestra datos originales 2021-2024, ANTES de eliminar 2021)
+plt.figure(figsize=(10, 5))
+plt.plot(df.index, df['cantidad de Turistas Extranjeros'], label='Turistas Reales (2021-2024)')
+plt.title('Gráfico Exploratorio: Turistas 2021-2024 (Datos Crudos)')
+plt.legend()
+plt.show()
 
 #Crear variables desfasadas (Lags)
-#Lag_1: Turistas del mes anterior
-df['Lag_1'] = df['Cantidad_Turistas'].shift(1)
+df['Lag_1'] = df['cantidad de Turistas Extranjeros'].shift(1)
+df['Lag_12'] = df['cantidad de Turistas Extranjeros'].shift(12) # Tu idea de "enero vs enero"
 
 #Limpieza
-print(f"Filas ANTES de limpiar NaNs (Ene 2022 - Mar 2025): {len(df)} (39 filas)")
-df = df.dropna()
-print(f"Filas DESPUÉS de limpiar NaNs (Feb 2022 - Mar 2025): {len(df)} (38 filas)")
+print(f"\nFilas ANTES de limpiar NaNs (Datos 2021-2024): {len(df)} (48 filas)")
+df = df.dropna() # Esto elimina todo el año 2021 (12 filas) por el Lag_12
+print(f"Filas DESPUÉS de limpiar NaNs (Datos 2022-2024): {len(df)} (36 filas)")
 
 #Crear variable objetivo de clasificación
-media_turistas = df['Cantidad_Turistas'].mean()
-df['Temporada_Alta'] = (df['Cantidad_Turistas'] > media_turistas).astype(int)
+media_turistas = df['cantidad de Turistas Extranjeros'].mean()
+df['Temporada_Alta'] = (df['cantidad de Turistas Extranjeros'] > media_turistas).astype(int)
 
-print("\nVista previa de los datos procesados:")
-print(df.head())
+print("\nVista previa de los datos procesados (incluye Dólar y PIB):")
+print(df.head()) # Debería empezar en 2022-01-01
+
 
 #Division de Datos (X e y)
 
-#Nuestras variables predictoras.
-features = ['Mes', 'Anio', 'Lag_1']
+#Definimos nuestras variables predictoras (Features)
+features = ['Mes_Num', 'Año', 'Lag_1', 'Lag_12', 'Tipo_Cambio_Promedio', 'PIB']
 X = df[features]
 
-#Prolema 1: Regresión
+#Problema 1: Regresión
 #Predecir la cantidad numérica de turistas
-y_regresion = df['Cantidad_Turistas']
+y_regresion = df['cantidad de Turistas Extranjeros']
 
 #Problema 2: Clasificación
 #Predecir la categoría 'Temporada_Alta' (1 o 0)
 y_clasificacion = df['Temporada_Alta']
 
-#Dividimos los datos: 70% para entrenar, 30% para probar (sin mezclar)
-test_size = 0.3
+#Dividimos los datos: 60% para entrenar, 40% para probar (sin mezclar)
+test_size = 0.4 #Probar
 split_index = int(len(df) * (1 - test_size))
 
 X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
 y_train_reg, y_test_reg = y_regresion.iloc[:split_index], y_regresion.iloc[split_index:]
 y_train_clas, y_test_clas = y_clasificacion.iloc[:split_index], y_clasificacion.iloc[split_index:]
 
-#Escalado de Datos región logística y red neuronal
+#Escalado de Datos (región logística y red neuronal)
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-
-print(f"\nDatos de entrenamiento: {len(X_train)} filas")
-print(f"Datos de prueba: {len(X_test)} filas")
+print(f"\nDatos de entrenamiento: {len(X_train)} filas (Aprox. 21)")
+print(f"Datos de prueba: {len(X_test)} filas (Aprox. 15)")
 
 #Implementación de Modelos
 print("\n--- INICIANDO ENTRENAMIENTO DE MODELOS ---")
 
-#Modelo 1: regresión lineal (Regresión)
+#Modelo 1: Regresión Lineal (Regresión)
 print("\n[Modelo 1: Regresión Lineal]")
 modelo_reg_lineal = LinearRegression()
 modelo_reg_lineal.fit(X_train, y_train_reg)
@@ -106,10 +121,13 @@ r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
 print(f"R^2 (Regresión Lineal): {r2_lineal:.4f}")
 
 #Gráfico (Real vs Predicción)
+pred_train_lineal = modelo_reg_lineal.predict(X_train)
+
 plt.figure(figsize=(10, 5))
-plt.plot(y_test_reg.index, y_test_reg, label='Real')
-plt.plot(y_test_reg.index, pred_reg_lineal, label='Predicción (Lineal)', linestyle='--')
-plt.title('Regresión Lineal: Real vs. Predicción')
+plt.plot(y_regresion.index, y_regresion, label='Real (2022-2024)', color='black', lw=2)
+plt.plot(y_train_reg.index, pred_train_lineal, label='Ajuste (Train 2022-23)', color='blue', linestyle='--')
+plt.plot(y_test_reg.index, pred_reg_lineal, label='Predicción (Test 2023-24)', color='red', linestyle=':')
+plt.title('Regresión Lineal: Predicción Completa (2022-2024)')
 plt.legend()
 plt.show()
 
@@ -124,6 +142,7 @@ print(f"Accuracy (Reg. Logística): {acc_log:.4f}")
 #Matriz de Confusión
 print("Matriz de Confusión (Reg. Logística):")
 cm_log = confusion_matrix(y_test_clas, pred_reg_log)
+
 sns.heatmap(cm_log, annot=True, fmt='d', cmap='Blues')
 plt.title('Matriz de Confusión - Reg. Logística')
 plt.xlabel('Predicho')
@@ -144,6 +163,7 @@ df_importancias = pd.DataFrame({'Variable': features, 'Importancia': importancia
 df_importancias = df_importancias.sort_values(by='Importancia', ascending=False)
 print("\nImportancia de Variables (RF):")
 print(df_importancias)
+
 sns.barplot(x='Importancia', y='Variable', data=df_importancias)
 plt.title('Importancia de Variables - Random Forest')
 plt.show()
@@ -157,11 +177,12 @@ r2_nn = r2_score(y_test_reg, pred_nn)
 print(f"R^2 (Red Neuronal): {r2_nn:.4f}")
 
 #Gráfico (Comparando todos los modelos de regresión)
+pred_train_nn = modelo_nn.predict(X_train_scaled)
 plt.figure(figsize=(10, 5))
-plt.plot(y_test_reg.index, y_test_reg, label='Real', color='black', lw=2)
-plt.plot(y_test_reg.index, pred_reg_lineal, label=f'Predicción (Lineal) R2={r2_lineal:.2f}', linestyle='--')
-plt.plot(y_test_reg.index, pred_nn, label=f'Predicción (Red Neuronal) R2={r2_nn:.2f}', linestyle=':')
-plt.title('Comparación Modelos de Regresión')
+plt.plot(y_regresion.index, y_regresion, label='Real (2022-2024)', color='black', lw=2)
+plt.plot(y_train_reg.index, pred_train_nn, label='Ajuste (Train 2022-23)', color='blue', linestyle='--')
+plt.plot(y_test_reg.index, pred_nn, label='Predicción (Test 2023-24)', color='red', linestyle=':')
+plt.title('Red Neuronal: Predicción Completa (2022-2024)')
 plt.legend()
 plt.show()
 
