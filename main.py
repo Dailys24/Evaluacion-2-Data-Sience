@@ -189,11 +189,12 @@ plt.show()
 #Comparacion y resultados
 print("\n--- RESUMEN DE EVALUACIÓN ---")
 print("\nProblema de Regresión (Predecir Cantidad):")
-print(f"  R^2 Regresión Lineal: {r2_lineal:.1f}")
-print(f"  R^2 Red Neuronal    : {r2_nn:.1f}")
+print(f"R^2 Regresión Lineal: {r2_lineal:.1f}")
+print(f"R^2 Red Neuronal    : {r2_nn:.1f}")
 
 print("\nProblema de Clasificación (Predecir Temporada Alta):")
-print(f"  Accuracy Reg. Logística: {acc_log:.4f}")
-print(f"  Accuracy Random Forest : {acc_rf:.4f}")
+print(f"Accuracy Reg. Logística: {acc_log:.4f}")
+print(f"Accuracy Random Forest : {acc_rf:.4f}")
 
 print("\n--- FIN DEL SCRIPT ---")
+
