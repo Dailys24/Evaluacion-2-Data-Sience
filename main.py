@@ -14,8 +14,8 @@ from sklearn.linear_model import LogisticRegression  #Modelo 2 (Clasificación)
 from sklearn.ensemble import RandomForestClassifier  #Modelo 3 (Árbol/RF)
 
 #Métricas de Evaluación
-from sklearn.metrics import r2_score, mean_squared_error   # Para Regresión
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report # Para Clasificación
+from sklearn.metrics import r2_score, mean_squared_error   #Para Regresión
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report #Para Clasificación
 
 #Carga y preprocesamiento de datos
 file_name = 'Cantidad de turistas.csv' 
@@ -84,7 +84,7 @@ print(f"Filas DESPUÉS de limpiar NaNs (Datos 2022-Mar 2025): {len(df_historico)
 
 #PARTE 1: Evaluacion de modelos
 print("\n\n" + "="*60)
-print("INICIANDO PARTE 1: EVALUACIÓN DE MODELOS (RÚBRICA)")
+print("INICIANDO PARTE 1: EVALUACIÓN DE MODELOS")
 print("="*60)
 
 #Usamos una copia para no alterar los datos históricos
@@ -118,7 +118,7 @@ X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
 y_train_reg, y_test_reg = y_regresion.iloc[:split_index], y_regresion.iloc[split_index:]
 y_train_clas, y_test_clas = y_clasificacion.iloc[:split_index], y_clasificacion.iloc[split_index:]
 
-#Escalado de Datos (región logística y red neuronal)
+#Escalado de Datos región logística
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
@@ -234,12 +234,12 @@ for fecha_a_predecir in df_futuro_a_predecir.index:
     print(f"Predicción para {fecha_a_predecir.strftime('%Y-%m')}: {int(prediccion_turistas[0])} turistas")
 
 #Resultados finales
-print("\n--- DATAFRAME FINAL CON PREDICCIONES (AÑO 2025) ---")
+print("\nDATAFRAME FINAL CON PREDICCIONES (AÑO 2025)")
 #Filtramos solo por el año 2025 para ver la tabla final
 print(df_prediccion[df_prediccion['Año'] == 2025])
 
 #Gráfico final mostrando datos reales y la predicción
-print("\nGenerando gráfico de predicción final...")
+print("\nGenerando gráfico de predicción final")
 plt.figure(figsize=(12, 6))
 #Graficamos los datos históricos conocidos (2022-Mar 2025)
 plt.plot(df_historico[columna_turistas], label='Datos Históricos (2022-Mar 2025)', color='blue', lw=2)
@@ -250,6 +250,4 @@ plt.ylabel('Cantidad de Turistas Extranjeros')
 plt.legend()
 plt.grid(True)
 plt.show()
-
-
-print("\n--- SCRIPT ÚNICO COMPLETADO ---")
+print("\nMuchas gracias por usar este programa. ¡Hasta la próxima!")
