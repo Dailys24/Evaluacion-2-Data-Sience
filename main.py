@@ -118,7 +118,7 @@ modelo_reg_lineal = LinearRegression()
 modelo_reg_lineal.fit(X_train, y_train_reg)
 pred_reg_lineal = modelo_reg_lineal.predict(X_test)
 r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
-print(f"R^2 (Regresión Lineal): {r2_lineal:.4f}")
+print(f"R^2 (Regresión Lineal): {r2_lineal:.1f}")
 
 #Gráfico (Real vs Predicción)
 pred_train_lineal = modelo_reg_lineal.predict(X_train)
@@ -137,7 +137,7 @@ modelo_reg_log = LogisticRegression(random_state=42)
 modelo_reg_log.fit(X_train_scaled, y_train_clas)
 pred_reg_log = modelo_reg_log.predict(X_test_scaled)
 acc_log = accuracy_score(y_test_clas, pred_reg_log)
-print(f"Accuracy (Reg. Logística): {acc_log:.4f}")
+print(f"Accuracy (Reg. Logística): {acc_log:.1f}")
 
 #Matriz de Confusión
 print("Matriz de Confusión (Reg. Logística):")
@@ -155,7 +155,7 @@ modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
 modelo_rf.fit(X_train, y_train_clas)
 pred_rf = modelo_rf.predict(X_test)
 acc_rf = accuracy_score(y_test_clas, pred_rf)
-print(f"Accuracy (Random Forest): {acc_rf:.4f}")
+print(f"Accuracy (Random Forest): {acc_rf:.1f}")
 
 #Importancia de Variables
 importancias = modelo_rf.feature_importances_
@@ -174,7 +174,7 @@ modelo_nn = MLPRegressor(hidden_layer_sizes=(50, 25), max_iter=1000, random_stat
 modelo_nn.fit(X_train_scaled, y_train_reg)
 pred_nn = modelo_nn.predict(X_test_scaled)
 r2_nn = r2_score(y_test_reg, pred_nn)
-print(f"R^2 (Red Neuronal): {r2_nn:.4f}")
+print(f"R^2 (Red Neuronal): {r2_nn:.1f}")
 
 #Gráfico (Comparando todos los modelos de regresión)
 pred_train_nn = modelo_nn.predict(X_train_scaled)
@@ -189,10 +189,11 @@ plt.show()
 #Comparacion y resultados
 print("\n--- RESUMEN DE EVALUACIÓN ---")
 print("\nProblema de Regresión (Predecir Cantidad):")
-print(f"  R^2 Regresión Lineal: {r2_lineal:.4f}")
-print(f"  R^2 Red Neuronal    : {r2_nn:.4f}")
+print(f"  R^2 Regresión Lineal: {r2_lineal:.1f}")
+print(f"  R^2 Red Neuronal    : {r2_nn:.1f}")
 
 print("\nProblema de Clasificación (Predecir Temporada Alta):")
 print(f"  Accuracy Reg. Logística: {acc_log:.4f}")
 print(f"  Accuracy Random Forest : {acc_rf:.4f}")
+
 print("\n--- FIN DEL SCRIPT ---")
