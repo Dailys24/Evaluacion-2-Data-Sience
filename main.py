@@ -9,16 +9,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 #Modelos
-from sklearn.linear_model import LinearRegression      #Modelo 1 (Regresión)
-from sklearn.linear_model import LogisticRegression    #Modelo 2 (Clasificación)
+from sklearn.linear_model import LinearRegression    #Modelo 1 (Regresión)
+from sklearn.linear_model import LogisticRegression  #Modelo 2 (Clasificación)
 from sklearn.ensemble import RandomForestClassifier  #Modelo 3 (Árbol/RF)
-# Se eliminó la Red Neuronal de los imports
 
 #Métricas de Evaluación
 from sklearn.metrics import r2_score, mean_squared_error   # Para Regresión
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report # Para Clasificación
-
-# --- 1. CARGA Y LIMPIEZA DE DATOS ---
 
 #Carga y preprocesamiento de datos
 file_name = 'Cantidad de turistas.csv' 
@@ -253,5 +250,6 @@ plt.ylabel('Cantidad de Turistas Extranjeros')
 plt.legend()
 plt.grid(True)
 plt.show()
+
 
 print("\n--- SCRIPT ÚNICO COMPLETADO ---")
