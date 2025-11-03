@@ -1,231 +1,253 @@
-import time
-import random
-from typing import List, Dict, Set, Tuple
+#Librerias necesarias
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Valor centinela para memoización (un valor no válido)
-SENTINEL = -float('inf') 
+#Preprocesamiento
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-# ---
-# Implementación 1: Memoización con Arreglos (Listas)
-# [span_0](start_span)Requerida por la tarea[span_0](end_span)
-# ---
+#Modelos
+from sklearn.linear_model import LinearRegression    #Modelo 1 (Regresión)
+from sklearn.linear_model import LogisticRegression  #Modelo 2 (Clasificación)
+from sklearn.ensemble import RandomForestClassifier  #Modelo 3 (Árbol/RF)
 
-def solve_torta_array(st: List[int]) -> float:
-    """
-    Resuelve el problema de la torta usando Programación Dinámica
-    con memoización basada en Arreglos (Listas de Listas).
-    Esta es la primera función requerida para la implementación.
-    """
-    N = len(st)
-    if N == 0:
-        return 0.0
-    
-    # n es la cantidad de porciones en un semicírculo
-    n_pequeno = N // 2
-    total_sum = sum(st)
-    
-    # memo[i][k] almacena el resultado de dp(i, k)
-    # Tamaño: N * (N+1)
-    memo: List[List[float]] = [[SENTINEL] * (N + 1) for _ in range(N)]
+#Métricas de Evaluación
+from sklearn.metrics import r2_score, mean_squared_error   #Para Regresión
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report #Para Clasificación
 
-    # El problema original es el bloque completo (índice 0, largo N)
-    net_score = dp_array(0, N, st, memo, N, n_pequeno)
-    
-    # Puntuación Neta = (Score Profesor) - (Score Hermana)
-    # Suma Total = (Score Profesor) + (Score Hermana)
-    # Score Profesor = (Neta + Total) / 2
-    return (total_sum + net_score) / 2
+#Carga y preprocesamiento de datos
+file_name = 'Cantidad de turistas.csv' 
 
-def dp_array(i: int, k: int, st: List[int], memo: List[List[float]], N: int, n_pequeno: int) -> float:
-    """
-    Función recursiva (subproblema) para la memoización con arreglo.
-    Calcula la max puntuación neta del bloque contiguo (i, k).
-    """
-    # Caso Base 1: Bloque vacío
-    if k == 0:
-        return 0.0
-    
-    # [span_1](start_span)Caso Base 2: Regla (b), una sola porción[span_1](end_span)
-    if k == 1:
-        return float(st[i])
-        
-    # Verificar memoización
-    if memo[i][k] != SENTINEL:
-        return memo[i][k]
-
-    # --- Lógica de Transición (Recurrencia) ---
-    
-    # 1. Identificar los índices del bloque actual (i, k)
-    current_block_indices = {(i + m) % N for m in range(k)}
-    
-    possible_moves = []
-    
-    # 2. Iterar sobre TODOS los 2n (N) posibles ángulos de corte alpha_j
-    for j in range(N):
-        
-        # 3. [span_2](start_span)Validar el corte j según Regla (c.1)[span_2](end_span)
-        # "al menos una porción... en cada lado"
-        side1_indices = {(j + m) % N for m in range(1, n_pequeno)}
-        side2_indices = {(j + n_pequeno + m) % N for m in range(1, n_pequeno)}
-        side1_has_pieces = any(p in current_block_indices for p in side1_indices)
-        side2_has_pieces = any(p in current_block_indices for p in side2_indices)
-        
-        if side1_has_pieces and side2_has_pieces:
-            possible_moves.append(j)
-
-    # Caso Base 3: "Parar de comer" (no hay movimientos válidos)
-    if not possible_moves:
-        memo[i][k] = 0.0
-        return 0.0
-        
-    best_net_score = -float('inf')
-
-    # 4. Probar todos los cortes válidos (j) y aplicar minimax
-    for j in possible_moves:
-        
-        # 4a. [span_3](start_span)Calcular score (Regla c.2: comer semicírculo)[span_3](end_span)
-        semicircle_indices = {(j + m) % N for m in range(n_pequeno)}
-        
-        pieces_to_eat = current_block_indices.intersection(semicircle_indices)
-        move_score = sum(st[p] for p in pieces_to_eat)
-        
-        # 4b. Identificar el subproblema restante
-        remaining_pieces = current_block_indices.difference(pieces_to_eat)
-        
-        new_i, new_k = 0, 0
-        if remaining_pieces:
-            new_k = len(remaining_pieces)
-            new_i = -1
-            for p in remaining_pieces:
-                if (p - 1 + N) % N not in remaining_pieces:
-                    new_i = p
-                    break
-        
-        # 4c. Aplicar Minimax: Mi score = (gano ahora) - (gana oponente)
-        opponent_net_score = dp_array(new_i, new_k, st, memo, N, n_pequeno)
-        my_net_score = move_score - opponent_net_score
-        best_net_score = max(best_net_score, my_net_score)
-
-    # 5. Guardar y retornar el resultado
-    memo[i][k] = best_net_score
-    return best_net_score
-
-
-# ---
-# Implementación 2: Memoización con Tablas de Hash (Diccionarios)
-# [span_4](start_span)Requerida por la tarea[span_4](end_span)
-# ---
-
-def solve_torta_hash(st: List[int]) -> float:
-    """
-    Resuelve el problema de la torta usando Programación Dinámica
-    con memoización basada en Tablas de Hash (Diccionarios).
-    """
-    N = len(st)
-    if N == 0:
-        return 0.0
-    
-    n_pequeno = N // 2
-    total_sum = sum(st)
-    
-    # memo[(i, k)] almacena el resultado de dp(i, k)
-    memo: Dict[Tuple[int, int], float] = {}
-
-    net_score = dp_hash(0, N, st, memo, N, n_pequeno)
-    
-    return (total_sum + net_score) / 2
-
-def dp_hash(i: int, k: int, st: List[int], memo: Dict[Tuple[int, int], float], N: int, n_pequeno: int) -> float:
-    """
-    Función recursiva (subproblema) para la memoización con hash.
-    La lógica es IDÉNTICA a 'dp_array', solo cambia el
-    almacenamiento en 'memo'.
-    """
-    # Casos Base
-    if k == 0:
-        return 0.0
-    if k == 1:
-        return float(st[i])
-        
-    # Verificar memoización
-    if (i, k) in memo:
-        return memo[(i, k)]
-
-    # --- Lógica de Transición (Exactamente la misma que antes) ---
-    
-    current_block_indices = {(i + m) % N for m in range(k)}
-    possible_moves = []
-    
-    for j in range(N):
-        side1_indices = {(j + m) % N for m in range(1, n_pequeno)}
-        side2_indices = {(j + n_pequeno + m) % N for m in range(1, n_pequeno)}
-        side1_has_pieces = any(p in current_block_indices for p in side1_indices)
-        side2_has_pieces = any(p in current_block_indices for p in side2_indices)
-        if side1_has_pieces and side2_has_pieces:
-            possible_moves.append(j)
-
-    if not possible_moves:
-        memo[(i, k)] = 0.0
-        return 0.0
-        
-    best_net_score = -float('inf')
-
-    for j in possible_moves:
-        semicircle_indices = {(j + m) % N for m in range(n_pequeno)}
-        pieces_to_eat = current_block_indices.intersection(semicircle_indices)
-        move_score = sum(st[p] for p in pieces_to_eat)
-        remaining_pieces = current_block_indices.difference(pieces_to_eat)
-        
-        new_i, new_k = 0, 0
-        if remaining_pieces:
-            new_k = len(remaining_pieces)
-            new_i = -1
-            for p in remaining_pieces:
-                if (p - 1 + N) % N not in remaining_pieces:
-                    new_i = p
-                    break
-        
-        opponent_net_score = dp_hash(new_i, new_k, st, memo, N, n_pequeno)
-        my_net_score = move_score - opponent_net_score
-        best_net_score = max(best_net_score, my_net_score)
-
-    # Guardar y retornar el resultado
-    memo[(i, k)] = best_net_score
-    return best_net_score
-
-
-# ---
-# Bloque de Ejecución (Solo para Entrega 1)
-# ---
-if __name__ == "__main__":
-    """
-    Este bloque SÍ se ejecuta.
-    Sirve para demostrar que las funciones están implementadas y corren.
-    No incluye el análisis de tiempos (que es para la Entrega 2).
-    """
-    
-    print("=== Avance Tarea 1: Feliz Cumpleaños ===")
-    print("Probando implementación con un caso simple...")
-
-    # n=2, N=4
-    # Un caso de prueba simple para demostrar que el código corre.
-    st_test = [10, 1, 1, 10]
-    
-    print(f"\nDatos de prueba (n=2, N=4): {st_test}")
-    
-    # --- Prueba de la versión con Arreglos ---
+try:
+    df_original = pd.read_csv(file_name)
+    print(f"Archivo '{file_name}' cargado exitosamente.")
+except FileNotFoundError:
+    print(f"Error: No se encontró el archivo '{file_name}'.")
+    exit()
+except Exception as e:
+    #Si falla UTF-8, intentar con 'latin1'
     try:
-        resultado_array = solve_torta_array(st_test)
-        print(f"Resultado (Arreglos): {resultado_array}")
-    except Exception as e:
-        print(f"Error en solve_torta_array: {e}")
+        df_original = pd.read_csv(file_name, encoding='latin1')
+        print(f"Archivo '{file_name}' cargado con 'latin1'.")
+    except Exception as e2:
+        print(f"Error al leer el archivo. Revisa el formato. Error: {e2}")
+        exit()
 
-    # --- Prueba de la versión con Hash ---
-    try:
-        resultado_hash = solve_torta_hash(st_test)
-        print(f"Resultado (Hash):     {resultado_hash}")
-    except Exception as e:
-        print(f"Error en solve_torta_hash: {e}")
+#Ingeniería de Características y Limpieza
+df = df_original.copy()
 
-    print("\nPrueba de ejecución finalizada.")
+#Limpiar nuevas columnas (Dólar y PIB)
+if 'Tipo_Cambio_Promedio' in df.columns and df['Tipo_Cambio_Promedio'].dtype == 'object':
+    df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].str.replace('.', '', regex=False)
+    df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].str.replace(',', '.', regex=False)
+    df['Tipo_Cambio_Promedio'] = pd.to_numeric(df['Tipo_Cambio_Promedio'], errors='coerce')
+    
+if 'PIB' in df.columns and df['PIB'].dtype == 'object':
+    df['PIB'] = df['PIB'].str.replace('.', '', regex=False)
+    df['PIB'] = df['PIB'].str.replace(',', '.', regex=False)
+    df['PIB'] = pd.to_numeric(df['PIB'], errors='coerce')
 
+
+cols_turistas = [col for col in df.columns if 'Turista' in col or 'turista' in col]
+columna_turistas = cols_turistas[0] if cols_turistas else 'cantidad de Turistas Extranjeros'
+
+#Convertir 'Mes' (texto) a número
+mapa_meses = {
+    'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+    'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+}
+if df['Mes'].dtype == 'object':
+    df['Mes_Num'] = df['Mes'].map(mapa_meses)
+else:
+    df['Mes_Num'] = df['Mes']
+
+#Crear una 'Fecha' real para usarla como índice
+df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Num'].astype(str))
+df = df.sort_values(by='Fecha')
+df = df.set_index('Fecha')
+
+#Crear variables desfasadas (Lags)
+df['Lag_1'] = df[columna_turistas].shift(1)
+df['Lag_12'] = df[columna_turistas].shift(12)
+
+#Separar datos históricos y futuros
+#df_historico son los datos que SÍ están completos (donde no hay NINGÚN NaN)
+df_historico = df.dropna()
+
+#df_futuro son las filas a predecir (donde 'cantidad de Turistas Extranjeros' está NaN)
+df_futuro_a_predecir = df[pd.isna(df[columna_turistas]) & (df.index.year >= 2025)]
+
+print(f"\nFilas ANTES de limpiar NaNs (Datos 2021-2025): {len(df)} (60 filas)")
+print(f"Filas DESPUÉS de limpiar NaNs (Datos 2022-Mar 2025): {len(df_historico)} (39 filas)")
+
+#PARTE 1: Evaluacion de modelos
+print("\n\n" + "="*60)
+print("INICIANDO PARTE 1: EVALUACIÓN DE MODELOS")
+print("="*60)
+
+#Usamos una copia para no alterar los datos históricos
+df_eval = df_historico.copy() 
+
+#Crear variable objetivo de clasificación
+media_turistas = df_eval[columna_turistas].mean()
+df_eval['Temporada_Alta'] = (df_eval[columna_turistas] > media_turistas).astype(int)
+
+print("\nVista previa de los datos de EVALUACIÓN (incluye Dólar y PIB):")
+print(df_eval.head())
+
+
+#Division de Datos (X e y)
+
+#Definimos nuestras variables predictoras (Features)
+features = ['Mes_Num', 'Año', 'Lag_1', 'Lag_12', 'Tipo_Cambio_Promedio', 'PIB']
+X = df_eval[features]
+
+#Problema 1: Regresión
+y_regresion = df_eval[columna_turistas]
+
+#Problema 2: Clasificación
+y_clasificacion = df_eval['Temporada_Alta']
+
+#Dividimos los datos: 60% para entrenar, 40% para probar (sin mezclar)
+test_size = 0.4
+split_index = int(len(df_eval) * (1 - test_size))
+
+X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
+y_train_reg, y_test_reg = y_regresion.iloc[:split_index], y_regresion.iloc[split_index:]
+y_train_clas, y_test_clas = y_clasificacion.iloc[:split_index], y_clasificacion.iloc[split_index:]
+
+#Escalado de Datos región logística
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+print(f"\nDatos de entrenamiento: {len(X_train)} filas")
+print(f"Datos de prueba: {len(X_test)} filas")
+
+#Implementación de Modelos
+print("\nIniciando entrenamiento de modelos de evaluación...")
+
+#Modelo 1: Regresión Lineal (Regresión)
+print("\n[Modelo 1: Regresión Lineal]")
+modelo_reg_lineal = LinearRegression()
+modelo_reg_lineal.fit(X_train, y_train_reg)
+pred_reg_lineal = modelo_reg_lineal.predict(X_test)
+r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
+print(f"R^2 (Regresión Lineal): {r2_lineal:.1f}")
+
+#Gráfico (Real vs Predicción)
+pred_train_lineal = modelo_reg_lineal.predict(X_train) 
+
+plt.figure(figsize=(10, 5))
+plt.plot(y_regresion.index, y_regresion, label='Real (2022-Mar 2025)', color='black', lw=2)
+plt.plot(y_train_reg.index, pred_train_lineal, label='Ajuste (Train)', color='blue', linestyle='--')
+plt.plot(y_test_reg.index, pred_reg_lineal, label='Predicción (Test)', color='red', linestyle=':')
+plt.title('[GRÁFICO DE EVALUACIÓN 1] Regresión Lineal: Predicción Completa')
+plt.legend()
+plt.show()
+
+#Modelo 2: Regresion logistica (Problema de Clasificación)
+print("\n[Modelo 2: Regresión Logística]")
+modelo_reg_log = LogisticRegression(random_state=42)
+modelo_reg_log.fit(X_train_scaled, y_train_clas)
+pred_reg_log = modelo_reg_log.predict(X_test_scaled)
+acc_log = accuracy_score(y_test_clas, pred_reg_log)
+print(f"Accuracy (Reg. Logística): {acc_log:.1f}")
+
+#Matriz de Confusión
+print("Matriz de Confusión (Reg. Logística):")
+cm_log = confusion_matrix(y_test_clas, pred_reg_log)
+
+sns.heatmap(cm_log, annot=True, fmt='d', cmap='Blues')
+plt.title('[GRÁFICO DE EVALUACIÓN 2] Matriz de Confusión - Reg. Logística')
+plt.xlabel('Predicho')
+plt.ylabel('Real')
+plt.show()
+
+#Modelo 3: Random forest (Problema de Clasificación)
+print("\n[Modelo 3: Random Forest Classifier]")
+modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
+modelo_rf.fit(X_train, y_train_clas)
+pred_rf = modelo_rf.predict(X_test)
+acc_rf = accuracy_score(y_test_clas, pred_rf)
+print(f"Accuracy (Random Forest): {acc_rf:.1f}")
+
+#Importancia de Variables
+importancias = modelo_rf.feature_importances_
+df_importancias = pd.DataFrame({'Variable': features, 'Importancia': importancias})
+df_importancias = df_importancias.sort_values(by='Importancia', ascending=False)
+print("\nImportancia de Variables (RF):")
+print(df_importancias)
+
+sns.barplot(x='Importancia', y='Variable', data=df_importancias)
+plt.title('[GRÁFICO DE EVALUACIÓN 3] Importancia de Variables - Random Forest')
+plt.show()
+
+#Comparacion y resultados
+print("\n--- RESUMEN DE EVALUACIÓN (PARTE 1) ---")
+print("\nProblema de Regresión (Predecir Cantidad):")
+print(f"R^2 Regresión Lineal: {r2_lineal:.1f}")
+
+print("\nProblema de Clasificación (Predecir Temporada Alta):")
+print(f"Accuracy Reg. Logística: {acc_log:.1f}")
+print(f"Accuracy Random Forest : {acc_rf:.1f}")
+
+#Prediccion final
+print("\n\n" + "="*60)
+print("INICIANDO PARTE 2: PREDICCIÓN DE FINALES DE 2025")
+print("="*60)
+
+#Separamos X e y del set de entrenamiento histórico COMPLETO (las 39 filas)
+X_historico_total = df_historico[features]
+y_historico_total = df_historico[columna_turistas]
+
+#Entrenamos nuestro modelo final con TODOS los datos históricos
+modelo_final = LinearRegression()
+modelo_final.fit(X_historico_total, y_historico_total)
+print("Modelo de Regresión Lineal (FINAL) entrenado con éxito.")
+
+print("\nINICIANDO PREDICCIÓN PARA FINALES DE 2025")
+
+#Hacemos una copia del dataframe original (el de 60 filas)
+df_prediccion = df.copy()
+
+#Llenamos los valores NaN de Dólar y PIB que faltan usando el último valor conocido
+df_prediccion['Tipo_Cambio_Promedio'].fillna(method='ffill', inplace=True)
+df_prediccion['PIB'].fillna(method='ffill', inplace=True)
+print("Valores NaN de Dólar y PIB rellenados para poder predecir.")
+
+#Bucle para predecir mes a mes
+for fecha_a_predecir in df_futuro_a_predecir.index:
+    df_prediccion['Lag_1'] = df_prediccion[columna_turistas].shift(1)
+    df_prediccion['Lag_12'] = df_prediccion[columna_turistas].shift(12)
+    
+    #Extraemos las "pistas" (features) para el mes que queremos predecir
+    X_actual = df_prediccion.loc[[fecha_a_predecir]][features]
+    
+    #Hacemos la predicción
+    prediccion_turistas = modelo_final.predict(X_actual)
+    
+    #Guardamos la predicción en la columna de turistas
+    df_prediccion.loc[fecha_a_predecir, columna_turistas] = int(prediccion_turistas[0])
+    print(f"Predicción para {fecha_a_predecir.strftime('%Y-%m')}: {int(prediccion_turistas[0])} turistas")
+
+#Resultados finales
+print("\nDATAFRAME FINAL CON PREDICCIONES (AÑO 2025)")
+#Filtramos solo por el año 2025 para ver la tabla final
+print(df_prediccion[df_prediccion['Año'] == 2025])
+
+#Gráfico final mostrando datos reales y la predicción
+print("\nGenerando gráfico de predicción final")
+plt.figure(figsize=(12, 6))
+#Graficamos los datos históricos conocidos (2022-Mar 2025)
+plt.plot(df_historico[columna_turistas], label='Datos Históricos (2022-Mar 2025)', color='blue', lw=2)
+#Graficamos predicción (Abr-Dic 2025)
+plt.plot(df_prediccion.loc[df_futuro_a_predecir.index][columna_turistas], label='Predicción (Abr-Dic 2025)', color='red', linestyle='--')
+plt.title('[GRÁFICO FINAL] Predicción de Turistas para Finales de 2025')
+plt.ylabel('Cantidad de Turistas Extranjeros')
+plt.legend()
+plt.grid(True)
+plt.show()
+print("\nMuchas gracias por usar este programa. ¡Hasta la próxima!")
