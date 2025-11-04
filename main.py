@@ -1,4 +1,4 @@
-#Integrantes: Angelo Gonzalez y Nicolás Rosales 
+#Integrantes: Angelo Gonzalez, Nicolás Rosales y Diego Vera
 
 #Librerias necesarias
 import pandas as pd
