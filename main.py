@@ -1,3 +1,5 @@
+#Integrantes: Angelo Gonzalez y Nicolás Rosales 
+
 #Librerias necesarias
 import pandas as pd
 import numpy as np
