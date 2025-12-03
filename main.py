@@ -1,255 +1,266 @@
-#Integrantes: Angelo Gonzalez, Nicolás Rosales y Diego Vera
+# PROYECTO FINAL DATA SCIENCE: Modelo de Predicción Turistas 2025
 
-#Librerias necesarias
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-#Preprocesamiento
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression     
+from sklearn.linear_model import LogisticRegression    
+from sklearn.ensemble import RandomForestClassifier  
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import accuracy_score, confusion_matrix
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
 
-#Modelos
-from sklearn.linear_model import LinearRegression    #Modelo 1 (Regresión)
-from sklearn.linear_model import LogisticRegression  #Modelo 2 (Clasificación)
-from sklearn.ensemble import RandomForestClassifier  #Modelo 3 (Árbol/RF)
+# 1. Carga y Limpieza de Datos
 
-#Métricas de Evaluación
-from sklearn.metrics import r2_score, mean_squared_error   #Para Regresión
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report #Para Clasificación
+# 1.1. Carga y procesamiento de datos
 
-#Carga y preprocesamiento de datos
-file_name = 'Cantidad de turistas.csv' 
+file_name = 'Informacion.csv' 
 
 try:
-    df_original = pd.read_csv(file_name)
-    print(f"Archivo '{file_name}' cargado exitosamente.")
+    df = pd.read_csv(file_name, dtype=str)
+    print(f"✅ Archivo '{file_name}' cargado exitosamente.")
 except FileNotFoundError:
-    print(f"Error: No se encontró el archivo '{file_name}'.")
+    print(f"❌ Error: No se encontró el archivo '{file_name}'.")
     exit()
 except Exception as e:
-    #Si falla UTF-8, intentar con 'latin1'
+    print(f"❌ Error al leer el archivo: {e}")
+    exit()
+
+if 'Dolar' in df.columns:
+    df.rename(columns={'Dolar': 'Tipo_Cambio_Promedio'}, inplace=True)
+
+
+def clean_decimal(x):
+    if pd.isna(x): return np.nan
+    x = str(x)
+    x = x.replace('.', '') 
+    x = x.replace(',', '.') 
     try:
-        df_original = pd.read_csv(file_name, encoding='latin1')
-        print(f"Archivo '{file_name}' cargado con 'latin1'.")
-    except Exception as e2:
-        print(f"Error al leer el archivo. Revisa el formato. Error: {e2}")
-        exit()
+        return float(x)
+    except:
+        return np.nan
 
-#Ingeniería de Características y Limpieza
-df = df_original.copy()
+def clean_integer(x):
+    if pd.isna(x): return np.nan
+    x = str(x).replace('.', '') 
+    try:
+        return int(x)
+    except:
+        return np.nan
 
-#Limpiar nuevas columnas (Dólar y PIB)
-if 'Tipo_Cambio_Promedio' in df.columns and df['Tipo_Cambio_Promedio'].dtype == 'object':
-    df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].str.replace('.', '', regex=False)
-    df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].str.replace(',', '.', regex=False)
-    df['Tipo_Cambio_Promedio'] = pd.to_numeric(df['Tipo_Cambio_Promedio'], errors='coerce')
-    
-if 'PIB' in df.columns and df['PIB'].dtype == 'object':
-    df['PIB'] = df['PIB'].str.replace('.', '', regex=False)
-    df['PIB'] = df['PIB'].str.replace(',', '.', regex=False)
-    df['PIB'] = pd.to_numeric(df['PIB'], errors='coerce')
+# 1.2. Limpieza de Datos en CSV:
+if 'Tipo_Cambio_Promedio' in df.columns: df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].apply(clean_decimal)
+if 'PIB' in df.columns: df['PIB'] = df['PIB'].apply(clean_decimal)
 
+cols_enteros = ['Robos_violentos', 'Delitos_contra_propiedad_no_violentos', 'Poblacion_RM']
+for col in cols_enteros:
+    if col in df.columns:
+        df[col] = df[col].apply(clean_integer)
 
-cols_turistas = [col for col in df.columns if 'Turista' in col or 'turista' in col]
-columna_turistas = cols_turistas[0] if cols_turistas else 'cantidad de Turistas Extranjeros'
+print("✅ Variables económicas y delictuales limpiadas.")
 
-#Convertir 'Mes' (texto) a número
-mapa_meses = {
-    'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
-    'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-}
-if df['Mes'].dtype == 'object':
-    df['Mes_Num'] = df['Mes'].map(mapa_meses)
-else:
-    df['Mes_Num'] = df['Mes']
+col_turistas = 'cantidad_de_Turistas_Extranjeros'
+if col_turistas in df.columns:
+    df[col_turistas] = df[col_turistas].apply(clean_integer) 
 
-#Crear una 'Fecha' real para usarla como índice
-df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Num'].astype(str))
-df = df.sort_values(by='Fecha')
-df = df.set_index('Fecha')
+df['Año'] = pd.to_numeric(df['Año'])
 
-#Crear variables desfasadas (Lags)
-df['Lag_1'] = df[columna_turistas].shift(1)
-df['Lag_12'] = df[columna_turistas].shift(12)
+mapa_meses = {'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+              'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12}
+df['Mes_Num'] = df['Mes'].map(mapa_meses)
 
-#Separar datos históricos y futuros
-#df_historico son los datos que SÍ están completos (donde no hay NINGÚN NaN)
+df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Num'].astype(str) + '-01')
+df = df.sort_values(by='Fecha').set_index('Fecha')
+
+df['Lag_1'] = df[col_turistas].shift(1)
+df['Lag_2'] = df[col_turistas].shift(2) 
+df['Lag_3'] = df[col_turistas].shift(3) 
+df['Lag_12'] = df[col_turistas].shift(12)
+
 df_historico = df.dropna()
+df_futuro_a_predecir = df[pd.isna(df[col_turistas]) & (df.index.year >= 2025)]
 
-#df_futuro son las filas a predecir (donde 'cantidad de Turistas Extranjeros' está NaN)
-df_futuro_a_predecir = df[pd.isna(df[columna_turistas]) & (df.index.year >= 2025)]
+print(f"\nDatos Históricos Completos: {len(df_historico)} filas.")
+print(f"Meses a Predecir (2025): {len(df_futuro_a_predecir)} filas.")
 
-print(f"\nFilas ANTES de limpiar NaNs (Datos 2021-2025): {len(df)} (60 filas)")
-print(f"Filas DESPUÉS de limpiar NaNs (Datos 2022-Mar 2025): {len(df_historico)} (39 filas)")
+# 2. Evaluación de Modelos
 
-#PARTE 1: Evaluacion de modelos
-print("\n\n" + "="*60)
-print("INICIANDO PARTE 1: EVALUACIÓN DE MODELOS")
+print("\n" + "="*60)
+print("EVALUACIÓN DE MODELOS")
 print("="*60)
 
-#Usamos una copia para no alterar los datos históricos
 df_eval = df_historico.copy() 
+media_turistas = df_eval[col_turistas].mean()
+df_eval['Temporada_Alta'] = (df_eval[col_turistas] > media_turistas).astype(int)
 
-#Crear variable objetivo de clasificación
-media_turistas = df_eval[columna_turistas].mean()
-df_eval['Temporada_Alta'] = (df_eval[columna_turistas] > media_turistas).astype(int)
+# 3. Definición de Variables
 
-print("\nVista previa de los datos de EVALUACIÓN (incluye Dólar y PIB):")
-print(df_eval.head())
+features = [
+    'Mes_Num', 'Año', 'Lag_1', 'Lag_2', 'Lag_3', 'Lag_12', 
+    'Tipo_Cambio_Promedio', 'PIB', 
+    'Robos_violentos', 'Delitos_contra_propiedad_no_violentos',
+    'Poblacion_RM'
+]
 
-
-#Division de Datos (X e y)
-
-#Definimos nuestras variables predictoras (Features)
-features = ['Mes_Num', 'Año', 'Lag_1', 'Lag_12', 'Tipo_Cambio_Promedio', 'PIB']
 X = df_eval[features]
-
-#Problema 1: Regresión
-y_regresion = df_eval[columna_turistas]
-
-#Problema 2: Clasificación
+y_regresion = df_eval[col_turistas]
 y_clasificacion = df_eval['Temporada_Alta']
 
-#Dividimos los datos: 60% para entrenar, 40% para probar (sin mezclar)
-test_size = 0.4
+test_size = 0.3 
 split_index = int(len(df_eval) * (1 - test_size))
 
 X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
 y_train_reg, y_test_reg = y_regresion.iloc[:split_index], y_regresion.iloc[split_index:]
 y_train_clas, y_test_clas = y_clasificacion.iloc[:split_index], y_clasificacion.iloc[split_index:]
 
-#Escalado de Datos región logística
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-print(f"\nDatos de entrenamiento: {len(X_train)} filas")
+print(f"Datos de entrenamiento: {len(X_train)} filas")
 print(f"Datos de prueba: {len(X_test)} filas")
 
-#Implementación de Modelos
-print("\nIniciando entrenamiento de modelos de evaluación...")
 
-#Modelo 1: Regresión Lineal (Regresión)
+# 4. Implementación de Modelos
+
 print("\n[Modelo 1: Regresión Lineal]")
 modelo_reg_lineal = LinearRegression()
 modelo_reg_lineal.fit(X_train, y_train_reg)
 pred_reg_lineal = modelo_reg_lineal.predict(X_test)
 r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
-print(f"R^2 (Regresión Lineal): {r2_lineal:.1f}")
+print(f"R^2 (Regresión Lineal): {r2_lineal:.2f}")
 
-#Gráfico (Real vs Predicción)
-pred_train_lineal = modelo_reg_lineal.predict(X_train) 
 
-plt.figure(figsize=(10, 5))
-plt.plot(y_regresion.index, y_regresion, label='Real (2022-Mar 2025)', color='black', lw=2)
-plt.plot(y_train_reg.index, pred_train_lineal, label='Ajuste (Train)', color='blue', linestyle='--')
-plt.plot(y_test_reg.index, pred_reg_lineal, label='Predicción (Test)', color='red', linestyle=':')
-plt.title('[GRÁFICO DE EVALUACIÓN 1] Regresión Lineal: Predicción Completa')
-plt.legend()
-plt.show()
-
-#Modelo 2: Regresion logistica (Problema de Clasificación)
-print("\n[Modelo 2: Regresión Logística]")
+print("\n[Modelo 2: Regresión Logística (Clasificación)]")
 modelo_reg_log = LogisticRegression(random_state=42)
 modelo_reg_log.fit(X_train_scaled, y_train_clas)
 pred_reg_log = modelo_reg_log.predict(X_test_scaled)
 acc_log = accuracy_score(y_test_clas, pred_reg_log)
-print(f"Accuracy (Reg. Logística): {acc_log:.1f}")
+print(f"Precisión: {acc_log:.2f}")
 
-#Matriz de Confusión
-print("Matriz de Confusión (Reg. Logística):")
-cm_log = confusion_matrix(y_test_clas, pred_reg_log)
 
-sns.heatmap(cm_log, annot=True, fmt='d', cmap='Blues')
-plt.title('[GRÁFICO DE EVALUACIÓN 2] Matriz de Confusión - Reg. Logística')
-plt.xlabel('Predicho')
-plt.ylabel('Real')
-plt.show()
-
-#Modelo 3: Random forest (Problema de Clasificación)
-print("\n[Modelo 3: Random Forest Classifier]")
+print("\n[Modelo 3: Random Forest]")
 modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
 modelo_rf.fit(X_train, y_train_clas)
 pred_rf = modelo_rf.predict(X_test)
 acc_rf = accuracy_score(y_test_clas, pred_rf)
-print(f"Accuracy (Random Forest): {acc_rf:.1f}")
+print(f"Precisión: {acc_rf:.2f}")
 
-#Importancia de Variables
 importancias = modelo_rf.feature_importances_
 df_importancias = pd.DataFrame({'Variable': features, 'Importancia': importancias})
 df_importancias = df_importancias.sort_values(by='Importancia', ascending=False)
-print("\nImportancia de Variables (RF):")
-print(df_importancias)
-
+plt.figure(figsize=(8, 4))
 sns.barplot(x='Importancia', y='Variable', data=df_importancias)
-plt.title('[GRÁFICO DE EVALUACIÓN 3] Importancia de Variables - Random Forest')
+plt.title('Importancia de Variables (Random Forest)')
 plt.show()
 
-#Comparacion y resultados
-print("\n--- RESUMEN DE EVALUACIÓN (PARTE 1) ---")
-print("\nProblema de Regresión (Predecir Cantidad):")
-print(f"R^2 Regresión Lineal: {r2_lineal:.1f}")
 
-print("\nProblema de Clasificación (Predecir Temporada Alta):")
-print(f"Accuracy Reg. Logística: {acc_log:.1f}")
-print(f"Accuracy Random Forest : {acc_rf:.1f}")
+print("\n[Modelo 4: Red Neuronal Profunda (TensorFlow/Keras)]")
 
-#Prediccion final
-print("\n\n" + "="*60)
-print("INICIANDO PARTE 2: PREDICCIÓN DE FINALES DE 2025")
-print("="*60)
+# 4.1. Arquitectura de Red Neuronal
+modelo_keras = Sequential([
+    Dense(64, activation='relu', input_dim=X_train_scaled.shape[1]),
+    Dropout(0.2), 
+    Dense(32, activation='relu'),
+    Dense(16, activation='relu'),
+    Dense(1, activation='linear')
+])
 
-#Separamos X e y del set de entrenamiento histórico COMPLETO (las 39 filas)
-X_historico_total = df_historico[features]
-y_historico_total = df_historico[columna_turistas]
+modelo_keras.compile(optimizer=Adam(learning_rate=0.01), loss='mse', metrics=['mae'])
 
-#Entrenamos nuestro modelo final con TODOS los datos históricos
-modelo_final = LinearRegression()
-modelo_final.fit(X_historico_total, y_historico_total)
-print("Modelo de Regresión Lineal (FINAL) entrenado con éxito.")
+# 4.2. Entrenamiento de Red Neuronal
+print("Entrenando IA.....")
+history = modelo_keras.fit(
+    X_train_scaled, y_train_reg,
+    epochs=100,           
+    batch_size=16,        
+    validation_split=0.2,
+    verbose=0            
+)
 
-print("\nINICIANDO PREDICCIÓN PARA FINALES DE 2025")
+# 4.3. Evaluación de Red Neuronal
+pred_nn_keras = modelo_keras.predict(X_test_scaled).flatten()
+r2_keras = r2_score(y_test_reg, pred_nn_keras)
+print(f"R^2 (Red Neuronal Keras): {r2_keras:.2f}")
 
-#Hacemos una copia del dataframe original (el de 60 filas)
-df_prediccion = df.copy()
-
-#Llenamos los valores NaN de Dólar y PIB que faltan usando el último valor conocido
-df_prediccion['Tipo_Cambio_Promedio'].fillna(method='ffill', inplace=True)
-df_prediccion['PIB'].fillna(method='ffill', inplace=True)
-print("Valores NaN de Dólar y PIB rellenados para poder predecir.")
-
-#Bucle para predecir mes a mes
-for fecha_a_predecir in df_futuro_a_predecir.index:
-    df_prediccion['Lag_1'] = df_prediccion[columna_turistas].shift(1)
-    df_prediccion['Lag_12'] = df_prediccion[columna_turistas].shift(12)
-    
-    #Extraemos las "pistas" (features) para el mes que queremos predecir
-    X_actual = df_prediccion.loc[[fecha_a_predecir]][features]
-    
-    #Hacemos la predicción
-    prediccion_turistas = modelo_final.predict(X_actual)
-    
-    #Guardamos la predicción en la columna de turistas
-    df_prediccion.loc[fecha_a_predecir, columna_turistas] = int(prediccion_turistas[0])
-    print(f"Predicción para {fecha_a_predecir.strftime('%Y-%m')}: {int(prediccion_turistas[0])} turistas")
-
-#Resultados finales
-print("\nDATAFRAME FINAL CON PREDICCIONES (AÑO 2025)")
-#Filtramos solo por el año 2025 para ver la tabla final
-print(df_prediccion[df_prediccion['Año'] == 2025])
-
-#Gráfico final mostrando datos reales y la predicción
-print("\nGenerando gráfico de predicción final")
-plt.figure(figsize=(12, 6))
-#Graficamos los datos históricos conocidos (2022-Mar 2025)
-plt.plot(df_historico[columna_turistas], label='Datos Históricos (2022-Mar 2025)', color='blue', lw=2)
-#Graficamos predicción (Abr-Dic 2025)
-plt.plot(df_prediccion.loc[df_futuro_a_predecir.index][columna_turistas], label='Predicción (Abr-Dic 2025)', color='red', linestyle='--')
-plt.title('[GRÁFICO FINAL] Predicción de Turistas para Finales de 2025')
-plt.ylabel('Cantidad de Turistas Extranjeros')
+# 4.4. Curva de Aprendizaje Red Neuronal
+plt.figure(figsize=(10, 4))
+plt.plot(history.history['loss'], label='Error Entrenamiento (Loss)')
+plt.plot(history.history['val_loss'], label='Error Validación (Val Loss)')
+plt.title('Curva de Aprendizaje - Red Neuronal Keras')
+plt.xlabel('Épocas')
+plt.ylabel('Error (MSE)')
 plt.legend()
 plt.grid(True)
+plt.show() 
+
+# 4.5. Gráfico Real vs Predicción Red Neuronal
+plt.figure(figsize=(10, 5))
+plt.plot(y_regresion.index, y_regresion, label='Datos Reales', color='black', lw=2)
+plt.plot(y_test_reg.index, pred_nn_keras, label='Predicción IA', color='green', linestyle='--')
+plt.title('Red Neuronal Keras: Realidad vs Predicción')
+plt.legend()
 plt.show()
-print("\nMuchas gracias por usar este programa. ¡Hasta la próxima!")
+
+# 5. Resumen de Modelos
+
+print("\n--- RESUMEN DE MODELOS ---")
+print(f"R^2 Regresión Lineal : {r2_lineal:.2f}")
+print(f"R^2 Red Neuronal (IA): {r2_keras:.2f}")
+print(f"Precisión RF Clasif  : {acc_rf:.2f}")
+
+# 6. Predicción Final 2025
+
+print("\n" + "="*60)
+print("INICIANDO PROYECCIÓN PARA EL AÑO 2025...")
+print("="*60)
+
+X_historico_total = df_historico[features]
+y_historico_total = df_historico[col_turistas]
+
+modelo_final = LinearRegression()
+modelo_final.fit(X_historico_total, y_historico_total)
+print("Modelo final ajustado.")
+
+print("\nCalculando proyecciones...")
+df_prediccion = df.copy()
+
+cols_a_rellenar = ['Tipo_Cambio_Promedio', 'PIB', 'Robos_violentos', 'Delitos_contra_propiedad_no_violentos', 'Poblacion_RM']
+cols_presentes = [c for c in cols_a_rellenar if c in df_prediccion.columns]
+df_prediccion[cols_presentes] = df_prediccion[cols_presentes].fillna(method='ffill')
+
+for fecha_a_predecir in df_futuro_a_predecir.index:
+    df_prediccion['Lag_1'] = df_prediccion[col_turistas].shift(1)
+    df_prediccion['Lag_2'] = df_prediccion[col_turistas].shift(2)
+    df_prediccion['Lag_3'] = df_prediccion[col_turistas].shift(3)
+    df_prediccion['Lag_12'] = df_prediccion[col_turistas].shift(12)
+    
+    X_actual = df_prediccion.loc[[fecha_a_predecir]][features]
+    
+    prediccion_turistas = modelo_final.predict(X_actual)
+    
+    df_prediccion.loc[fecha_a_predecir, col_turistas] = int(prediccion_turistas[0])
+    print(f"-> {fecha_a_predecir.strftime('%B %Y')}: {int(prediccion_turistas[0])} turistas")
+
+# 7. Gráfico Final
+print("\n--- GRÁFICO FINAL DE PROYECCIÓN ---")
+plt.figure(figsize=(12, 6))
+plt.plot(df_historico.index, df_historico[col_turistas], label='Histórico', color='blue', lw=2)
+plt.plot(df_prediccion.loc[df_futuro_a_predecir.index].index, 
+         df_prediccion.loc[df_futuro_a_predecir.index][col_turistas], 
+         label='Proyección 2025', color='red', linestyle='--', marker='o')
+
+plt.title('Proyección de Turistas Extranjeros 2025')
+plt.ylabel('Cantidad de Turistas')
+plt.xlabel('Fecha')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("\n*** PREDICCIÓN FINALIZADA - GRACIAS POR USAR EL PROGRAMA ***")
