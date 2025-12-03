@@ -264,4 +264,5 @@ plt.grid(True, alpha=0.3)
 plt.show()
 
 
-print("\n*** PREDICCIÓN FINALIZADA - GRACIAS POR USAR EL PROGRAMA ***")
+print("\nGracias por utilizar el codigo")
+
