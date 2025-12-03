@@ -137,7 +137,7 @@ r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
 print(f"R^2 Regresión Lineal: {r2_lineal:.1f}")
 
 
-print("\n[Modelo 2: Regresión Logística (Clasificación)]")
+print("\nModelo 2: Regresión Logística (Clasificación)")
 modelo_reg_log = LogisticRegression(random_state=42)
 modelo_reg_log.fit(X_train_scaled, y_train_clas)
 pred_reg_log = modelo_reg_log.predict(X_test_scaled)
@@ -265,5 +265,6 @@ plt.show()
 
 
 print("\nGracias por utilizar el codigo")
+
 
 
