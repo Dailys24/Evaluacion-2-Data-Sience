@@ -24,12 +24,12 @@ file_name = 'Informacion.csv'
 
 try:
     df = pd.read_csv(file_name, dtype=str)
-    print(f"✅ Archivo '{file_name}' cargado exitosamente.")
+    print(f"Archivo '{file_name}' cargado exitosamente.")
 except FileNotFoundError:
-    print(f"❌ Error: No se encontró el archivo '{file_name}'.")
+    print(f"Error: No se encontró el archivo '{file_name}'.")
     exit()
 except Exception as e:
-    print(f"❌ Error al leer el archivo: {e}")
+    print(f"Error al leer el archivo: {e}")
     exit()
 
 if 'Dolar' in df.columns:
@@ -63,7 +63,7 @@ for col in cols_enteros:
     if col in df.columns:
         df[col] = df[col].apply(clean_integer)
 
-print("✅ Variables económicas y delictuales limpiadas.")
+print("Variables económicas y delictuales limpiadas.")
 
 col_turistas = 'cantidad_de_Turistas_Extranjeros'
 if col_turistas in df.columns:
@@ -134,7 +134,7 @@ modelo_reg_lineal = LinearRegression()
 modelo_reg_lineal.fit(X_train, y_train_reg)
 pred_reg_lineal = modelo_reg_lineal.predict(X_test)
 r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
-print(f"R^2 (Regresión Lineal): {r2_lineal:.2f}")
+print(f"R^2 (Regresión Lineal): {r2_lineal:.1f}")
 
 
 print("\n[Modelo 2: Regresión Logística (Clasificación)]")
@@ -142,7 +142,7 @@ modelo_reg_log = LogisticRegression(random_state=42)
 modelo_reg_log.fit(X_train_scaled, y_train_clas)
 pred_reg_log = modelo_reg_log.predict(X_test_scaled)
 acc_log = accuracy_score(y_test_clas, pred_reg_log)
-print(f"Precisión: {acc_log:.2f}")
+print(f"Precisión: {acc_log:.1f}")
 
 
 print("\n[Modelo 3: Random Forest]")
@@ -150,7 +150,7 @@ modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
 modelo_rf.fit(X_train, y_train_clas)
 pred_rf = modelo_rf.predict(X_test)
 acc_rf = accuracy_score(y_test_clas, pred_rf)
-print(f"Precisión: {acc_rf:.2f}")
+print(f"Precisión: {acc_rf:.1f}")
 
 importancias = modelo_rf.feature_importances_
 df_importancias = pd.DataFrame({'Variable': features, 'Importancia': importancias})
@@ -187,7 +187,7 @@ history = modelo_keras.fit(
 # 4.3. Evaluación de Red Neuronal
 pred_nn_keras = modelo_keras.predict(X_test_scaled).flatten()
 r2_keras = r2_score(y_test_reg, pred_nn_keras)
-print(f"R^2 (Red Neuronal Keras): {r2_keras:.2f}")
+print(f"R^2 (Red Neuronal Keras): {r2_keras:.1f}")
 
 # 4.4. Curva de Aprendizaje Red Neuronal
 plt.figure(figsize=(10, 4))
@@ -211,9 +211,9 @@ plt.show()
 # 5. Resumen de Modelos
 
 print("\n--- RESUMEN DE MODELOS ---")
-print(f"R^2 Regresión Lineal : {r2_lineal:.2f}")
-print(f"R^2 Red Neuronal (IA): {r2_keras:.2f}")
-print(f"Precisión RF Clasif  : {acc_rf:.2f}")
+print(f"R^2 Regresión Lineal : {r2_lineal:.1f}")
+print(f"R^2 Red Neuronal (IA): {r2_keras:.1f}")
+print(f"Precisión RF Clasif  : {acc_rf:.1f}")
 
 # 6. Predicción Final 2025
 
@@ -262,5 +262,6 @@ plt.xlabel('Fecha')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.show()
+
 
 print("\n*** PREDICCIÓN FINALIZADA - GRACIAS POR USAR EL PROGRAMA ***")
