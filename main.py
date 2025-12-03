@@ -129,12 +129,12 @@ print(f"Datos de prueba: {len(X_test)} filas")
 
 # 4. Implementación de Modelos
 
-print("\n[Modelo 1: Regresión Lineal]")
+print("\nModelo 1: Regresión Lineal")
 modelo_reg_lineal = LinearRegression()
 modelo_reg_lineal.fit(X_train, y_train_reg)
 pred_reg_lineal = modelo_reg_lineal.predict(X_test)
 r2_lineal = r2_score(y_test_reg, pred_reg_lineal)
-print(f"R^2 (Regresión Lineal): {r2_lineal:.1f}")
+print(f"R^2 Regresión Lineal: {r2_lineal:.1f}")
 
 
 print("\n[Modelo 2: Regresión Logística (Clasificación)]")
@@ -145,7 +145,7 @@ acc_log = accuracy_score(y_test_clas, pred_reg_log)
 print(f"Precisión: {acc_log:.1f}")
 
 
-print("\n[Modelo 3: Random Forest]")
+print("\nModelo 3: Random Forest")
 modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
 modelo_rf.fit(X_train, y_train_clas)
 pred_rf = modelo_rf.predict(X_test)
@@ -161,7 +161,7 @@ plt.title('Importancia de Variables (Random Forest)')
 plt.show()
 
 
-print("\n[Modelo 4: Red Neuronal Profunda (TensorFlow/Keras)]")
+print("\nModelo 4: Red Neuronal Profunda:")
 
 # 4.1. Arquitectura de Red Neuronal
 modelo_keras = Sequential([
@@ -175,7 +175,7 @@ modelo_keras = Sequential([
 modelo_keras.compile(optimizer=Adam(learning_rate=0.01), loss='mse', metrics=['mae'])
 
 # 4.2. Entrenamiento de Red Neuronal
-print("Entrenando IA.....")
+print("Entrenando IA")
 history = modelo_keras.fit(
     X_train_scaled, y_train_reg,
     epochs=100,           
@@ -187,7 +187,7 @@ history = modelo_keras.fit(
 # 4.3. Evaluación de Red Neuronal
 pred_nn_keras = modelo_keras.predict(X_test_scaled).flatten()
 r2_keras = r2_score(y_test_reg, pred_nn_keras)
-print(f"R^2 (Red Neuronal Keras): {r2_keras:.1f}")
+print(f"R^2 Red Neuronal Keras: {r2_keras:.1f}")
 
 # 4.4. Curva de Aprendizaje Red Neuronal
 plt.figure(figsize=(10, 4))
@@ -249,7 +249,7 @@ for fecha_a_predecir in df_futuro_a_predecir.index:
     print(f"-> {fecha_a_predecir.strftime('%B %Y')}: {int(prediccion_turistas[0])} turistas")
 
 # 7. Gráfico Final
-print("\n--- GRÁFICO FINAL DE PROYECCIÓN ---")
+print("\nGRÁFICO FINAL DE PROYECCIÓN")
 plt.figure(figsize=(12, 6))
 plt.plot(df_historico.index, df_historico[col_turistas], label='Histórico', color='blue', lw=2)
 plt.plot(df_prediccion.loc[df_futuro_a_predecir.index].index, 
@@ -265,4 +265,5 @@ plt.show()
 
 
 print("\nGracias por utilizar el codigo")
+
 
