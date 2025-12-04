@@ -1,4 +1,4 @@
-# PROYECTO FINAL DATA SCIENCE: Modelo de Predicción Turistas 2025
+
 
 import pandas as pd
 import numpy as np
@@ -16,17 +16,15 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 
-# 1. Carga y Limpieza de Datos
-
-# 1.1. Carga y procesamiento de datos
+# carga de datos
 
 file_name = 'Informacion.csv' 
 
 try:
     df = pd.read_csv(file_name, dtype=str)
-    print(f"Archivo '{file_name}' cargado exitosamente.")
+    print(f"Archivo '{file_name}' cargado exitosamente")
 except FileNotFoundError:
-    print(f"Error: No se encontró el archivo '{file_name}'.")
+    print(f"Error, No se encontró el archivo '{file_name}'.")
     exit()
 except Exception as e:
     print(f"Error al leer el archivo: {e}")
@@ -54,7 +52,7 @@ def clean_integer(x):
     except:
         return np.nan
 
-# 1.2. Limpieza de Datos en CSV:
+# limpieza datos csv
 if 'Tipo_Cambio_Promedio' in df.columns: df['Tipo_Cambio_Promedio'] = df['Tipo_Cambio_Promedio'].apply(clean_decimal)
 if 'PIB' in df.columns: df['PIB'] = df['PIB'].apply(clean_decimal)
 
@@ -89,7 +87,7 @@ df_futuro_a_predecir = df[pd.isna(df[col_turistas]) & (df.index.year >= 2025)]
 print(f"\nDatos Históricos Completos: {len(df_historico)} filas.")
 print(f"Meses a Predecir (2025): {len(df_futuro_a_predecir)} filas.")
 
-# 2. Evaluación de Modelos
+# evaluacion de modelos
 
 print("\n" + "="*60)
 print("EVALUACIÓN DE MODELOS")
@@ -99,7 +97,7 @@ df_eval = df_historico.copy()
 media_turistas = df_eval[col_turistas].mean()
 df_eval['Temporada_Alta'] = (df_eval[col_turistas] > media_turistas).astype(int)
 
-# 3. Definición de Variables
+# definicion de variables
 
 features = [
     'Mes_Num', 'Año', 'Lag_1', 'Lag_2', 'Lag_3', 'Lag_12', 
@@ -127,7 +125,7 @@ print(f"Datos de entrenamiento: {len(X_train)} filas")
 print(f"Datos de prueba: {len(X_test)} filas")
 
 
-# 4. Implementación de Modelos
+# implementacion de modelos
 
 print("\nModelo 1: Regresión Lineal")
 modelo_reg_lineal = LinearRegression()
@@ -163,7 +161,7 @@ plt.show()
 
 print("\nModelo 4: Red Neuronal Profunda:")
 
-# 4.1. Arquitectura de Red Neuronal
+#arquitectura red neuronal
 modelo_keras = Sequential([
     Dense(64, activation='relu', input_dim=X_train_scaled.shape[1]),
     Dropout(0.2), 
@@ -174,7 +172,7 @@ modelo_keras = Sequential([
 
 modelo_keras.compile(optimizer=Adam(learning_rate=0.01), loss='mse', metrics=['mae'])
 
-# 4.2. Entrenamiento de Red Neuronal
+#entrenamiento red neuronal
 print("Entrenando IA")
 history = modelo_keras.fit(
     X_train_scaled, y_train_reg,
@@ -184,12 +182,12 @@ history = modelo_keras.fit(
     verbose=0            
 )
 
-# 4.3. Evaluación de Red Neuronal
+# evaluacion red neuronal
 pred_nn_keras = modelo_keras.predict(X_test_scaled).flatten()
 r2_keras = r2_score(y_test_reg, pred_nn_keras)
 print(f"R^2 Red Neuronal Keras: {r2_keras:.1f}")
 
-# 4.4. Curva de Aprendizaje Red Neuronal
+# curva aprendizaje red neuronal
 plt.figure(figsize=(10, 4))
 plt.plot(history.history['loss'], label='Error Entrenamiento (Loss)')
 plt.plot(history.history['val_loss'], label='Error Validación (Val Loss)')
@@ -200,7 +198,7 @@ plt.legend()
 plt.grid(True)
 plt.show() 
 
-# 4.5. Gráfico Real vs Predicción Red Neuronal
+# grafico real vs prediccion red neuronal
 plt.figure(figsize=(10, 5))
 plt.plot(y_regresion.index, y_regresion, label='Datos Reales', color='black', lw=2)
 plt.plot(y_test_reg.index, pred_nn_keras, label='Predicción IA', color='green', linestyle='--')
@@ -208,14 +206,14 @@ plt.title('Red Neuronal Keras: Realidad vs Predicción')
 plt.legend()
 plt.show()
 
-# 5. Resumen de Modelos
+# resumen de modelos
 
 print("\n--- RESUMEN DE MODELOS ---")
 print(f"R^2 Regresión Lineal : {r2_lineal:.1f}")
 print(f"R^2 Red Neuronal (IA): {r2_keras:.1f}")
 print(f"Precisión RF Clasif  : {acc_rf:.1f}")
 
-# 6. Predicción Final 2025
+# prediccion final 2025
 
 print("\n" + "="*60)
 print("INICIANDO PROYECCIÓN PARA EL AÑO 2025...")
@@ -248,7 +246,7 @@ for fecha_a_predecir in df_futuro_a_predecir.index:
     df_prediccion.loc[fecha_a_predecir, col_turistas] = int(prediccion_turistas[0])
     print(f"-> {fecha_a_predecir.strftime('%B %Y')}: {int(prediccion_turistas[0])} turistas")
 
-# 7. Gráfico Final
+# grafico final 
 print("\nGRÁFICO FINAL DE PROYECCIÓN")
 plt.figure(figsize=(12, 6))
 plt.plot(df_historico.index, df_historico[col_turistas], label='Histórico', color='blue', lw=2)
@@ -264,7 +262,6 @@ plt.grid(True, alpha=0.3)
 plt.show()
 
 
-print("\nGracias por utilizar el codigo")
-
+print("\nProceso completado")
 
 
